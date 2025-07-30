@@ -511,15 +511,41 @@ def GetWADComs(output: str) -> bool:
     keys, values = ReadMDFiles(md_files)
     return WriteExportMdCsv(output,values,keys,md_files)
 
+def GetPortList(output: str) -> bool:
+    def GetFirst4(contents: str) -> tuple[list[dict], list[str]]:
+        values = []
+        keys = []
+        c=0
+        for j,i in enumerate(contents.splitlines()):
+            collected_data = {}
+            if j==0:
+                for l,k in enumerate(i.split(",")):
+                    if l < 4: keys.append(k)
+            else:
+                for l,k in enumerate(i.split(",")):
+                    if l < 4:
+                        collected_data[keys[l]] = k
+                try:
+                    if len(collected_data["Port Number"])>0 and isinstance(int(collected_data["Port Number"]),int):
+                        values.append(collected_data)
+                except: pass
+        return values, keys
+
+
+    print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting PortList")
+    values, keys = GetFirst4(requests.get("https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv").text)
+
+    return WriteExportCsv(output,values,keys)
+
 def HandleSysArgs(help_menu: bool = False) -> None:
     global selected_sources, all_sources, additional_lots_project
     all_sources = False
     selected_sources = []
     additional_lots_project = False
 
-    valid_sources = ["bootloaders", "gtfobins", "hijacklibs", "lolapps", "lolc2", "lolcerts", "loflcab", "lolad", "lolbas", "loldrivers", "lolrmm", "lottunnels", "lolesxi", "lots_project", "lots_project_additional", "loobins", "lotwebhooks", "wadcoms"]
+    valid_sources = ["bootloaders", "gtfobins", "hijacklibs", "lolapps", "lolc2", "lolcerts", "loflcab", "lolad", "lolbas", "loldrivers", "lolrmm", "lottunnels", "lolesxi", "lots_project", "lots_project_additional", "loobins", "lotwebhooks", "wadcoms", "port_list"]
 
-    version = "1.0.1"
+    version = "1.1.2"
 
     logo_col1 = random.randrange(60, 255); logo_col2 = random.randrange(60, 255); logo_col3 = random.randrange(60, 255)
     logo = f"\033[1;38;2;{logo_col1};{logo_col2};{logo_col3}m"+fr"""
@@ -579,6 +605,7 @@ if __name__ == "__main__":
         "loobins": lambda: GetLooBins("export/loobins.csv"),
         "lotwebhooks": lambda: GetLotWebhooks("export/lotwebhooks.csv"),
         "wadcoms": lambda: GetWADComs("export/wadcoms.csv"),
+        "port_list": lambda: GetPortList("export/port_list.csv")
     }
 
     if not os.path.exists("export"): os.mkdir("export")
