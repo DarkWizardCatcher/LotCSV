@@ -380,7 +380,7 @@ def GetLOLCerts(output: list[str]) -> bool:
     all_results = []
 
     for i in output:
-        yml_files = FindFiles(f"lolcerts/{i.split("/")[1].split("_")[1][:-4]}/",".yml")
+        yml_files = FindFiles(f"lolcerts/{i.split('/')[1].split('_')[1][:-4]}/", ".yml")
         keys, values = ReadFiles(yml_files)
         all_results.append(WriteExportCsv(i,values,keys))
 
