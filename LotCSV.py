@@ -62,7 +62,24 @@ def ReadFiles(files: list[str]) -> tuple[list[str], list[dict]]:
                 print(f"Error parsing YAML file {file}: {e}")
     return keys, values
 
+def SplitFrontMatter(text: str) -> tuple[str, str]:
+    """
+    Splits a Markdown file into (front matter, body). Front matter is the YAML between an opening "---" line and the next "---" or "..." line.
+    Files without front matter are returned whole as YAML with an empty body.
+    """
+    lines = text.lstrip("\ufeff").splitlines()
+    start = 0
+    while start < len(lines) and not lines[start].strip(): start += 1    # skip leading blank lines
+    if start < len(lines) and lines[start].strip() == "---":
+        for n in range(start + 1, len(lines)):
+            if lines[n].strip() in ("---", "..."):
+                return "\n".join(lines[start + 1:n]), "\n".join(lines[n + 1:])
+    return text, ""
+
 def ReadMDFiles(files: list[str]) -> tuple[list[str], list[dict]]:
+    """
+    Reads the YAML front matter of Markdown files from FindFiles. The Markdown body is ignored.
+    """
     values = []
     keys = []
     def recursive_parse(data: dict | list | str, collected_data: dict, parent_key: str = "") -> None:
@@ -82,9 +99,7 @@ def ReadMDFiles(files: list[str]) -> tuple[list[str], list[dict]]:
     for file in files:
         print(f" \033[1;90m[\033[1;36m~\033[1;90m] \033[0mReading: {file}                                  ", end="\r")
         with open(file, "r", errors="ignore") as f:
-            content_raw = f.read().splitlines()
-            content_raw.pop(len(content_raw)-1)
-            content = "\n".join([str(i) for i in content_raw])
+            content, _ = SplitFrontMatter(f.read())
             try:
                 contents = yaml.safe_load(content)
                 collected_data = {}
@@ -511,6 +526,35 @@ def GetWADComs(output: str) -> bool:
     keys, values = ReadMDFiles(md_files)
     return WriteExportMdCsv(output,values,keys,md_files)
 
+def GetLOTP(output: str) -> bool:
+    def FirstParagraph(body: str) -> str:
+        """First prose paragraph of the Markdown body (skips headings, code, tables, images and HTML)."""
+        for para in body.split("\n\n"):
+            para = para.strip()
+            if para and not para.startswith(("#", "```", "|", "!", "<")):
+                return " ".join(para.replace("`", "").split())
+        return ""
+    print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOTP")
+    GetRepository("https://github.com/boostsecurityio/lotp")
+
+    keys = ["title", "description"]
+    values = []
+    # Read one file at a time so the url/description always land on the right tool, even if a file fails to parse
+    for md_file in FindFiles("lotp/_tool/", ".md"):
+        file_keys, file_values = ReadMDFiles([md_file])
+        if not file_values: continue
+        for key in file_keys:
+            if key not in keys: keys.append(key)
+        with open(md_file, "r", encoding="utf-8", errors="ignore") as f:
+            _, body = SplitFrontMatter(f.read())
+        tool = file_values[0]
+        tool["description"] = FirstParagraph(body)
+        tool["url"] = "https://boostsecurityio.github.io/lotp/tool/" + os.path.basename(md_file)[:-3]
+        values.append(tool)
+    keys.append("url")
+    values.sort(key=lambda tool: str(tool.get("title", "")).lower())
+    return WriteExportCsv(output, values, keys)
+
 def GetPortList(output: str) -> bool:
     def GetFirst4(contents: str) -> tuple[list[dict], list[str]]:
         values = []
@@ -543,9 +587,9 @@ def HandleSysArgs(help_menu: bool = False) -> None:
     selected_sources = []
     additional_lots_project = False
 
-    valid_sources = ["bootloaders", "gtfobins", "hijacklibs", "lolapps", "lolc2", "lolcerts", "loflcab", "lolad", "lolbas", "loldrivers", "lolrmm", "lottunnels", "lolesxi", "lots_project", "lots_project_additional", "loobins", "lotwebhooks", "wadcoms", "port_list"]
+    valid_sources = ["bootloaders", "gtfobins", "hijacklibs", "lolapps", "lolc2", "lolcerts", "loflcab", "lolad", "lolbas", "loldrivers", "lolrmm", "lottunnels", "lolesxi", "lots_project", "lots_project_additional", "loobins", "lotwebhooks", "wadcoms", "lotp", "port_list"]
 
-    version = "1.1.2"
+    version = "1.2.0"
 
     logo_col1 = random.randrange(60, 255); logo_col2 = random.randrange(60, 255); logo_col3 = random.randrange(60, 255)
     logo = f"\033[1;38;2;{logo_col1};{logo_col2};{logo_col3}m"+fr"""
@@ -605,6 +649,7 @@ if __name__ == "__main__":
         "loobins": lambda: GetLooBins("export/loobins.csv"),
         "lotwebhooks": lambda: GetLotWebhooks("export/lotwebhooks.csv"),
         "wadcoms": lambda: GetWADComs("export/wadcoms.csv"),
+        "lotp": lambda: GetLOTP("export/lotp.csv"),
         "port_list": lambda: GetPortList("export/port_list.csv")
     }
 

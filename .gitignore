@@ -1,5 +1,5 @@
 *env/*
-__pycache__/*
+__pycache__/
 GTFOBins.github.io
 HijackLibs
 LOFLCAB
@@ -11,3 +11,7 @@ LOLESXi
 LOOBins
 LOTTunnels.github.io
 WADComs.github.io
+lotp
+# harness
+.cache/
+.pytest_cache/

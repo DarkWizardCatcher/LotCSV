@@ -50,10 +50,10 @@ Otherwise use `python LotCSV.py -h` to get help.
 - [x] https://lolapps-project.github.io
 - [x] https://lotwebhooks.github.io/index.html
 - [x] https://wadcoms.github.io
+- [x] https://boostsecurityio.github.io/lotp/
 
 ## ToDo
 - [ ] https://filesec.io
 - [ ] https://malapi.io
 - [ ] https://wtfbins.wtf/
-- [ ] https://boostsecurityio.github.io/lotp/
 - [ ] https://0xanalyst.github.io/Project-Lost/
