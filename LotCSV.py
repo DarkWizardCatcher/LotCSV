@@ -7,15 +7,22 @@ import sys
 import random
 import urllib.parse
 
-def GetRepository(url: str) -> None:
-    directory = url.split("/")[4]
+REPO_DIR = "repos"   # all cloned source repositories live here
+
+def GetRepository(url: str) -> str:
+    """
+    Clones the repository into REPO_DIR (or pulls it if already cloned) and returns its local path.
+    """
+    directory = os.path.join(REPO_DIR, url.split("/")[4])
+    os.makedirs(REPO_DIR, exist_ok=True)
     if not os.path.exists(directory):
         print(" \033[1;90m[\033[1;33m+\033[1;90m]\033[0m Cloning repository...")
-        os.system(f"git clone {url}")
+        os.system(f'git clone "{url}" "{directory}"')
     else:
         print(" \033[1;90m[\033[1;33m+\033[1;90m]\033[0m Pulling repository...")
-        os.system(f"cd {directory} && git pull")
+        os.system(f'git -C "{directory}" pull')
     print()
+    return directory
 
 def FindFiles(path: str, extension: str, exclude: list[str] = []) -> list[str]:
     """
@@ -183,7 +190,7 @@ def GetLOLC2(output: str) -> bool:
             for j in content[i]:
                 if not j in keys: keys.append(j)
                 if "descriptionUrl" in j:
-                    with open("lolc2.github.io/"+content[i][j],"r",encoding="utf-8",errors="ignore") as f:desc_raw = f.read().splitlines()
+                    with open(os.path.join(repo, content[i][j]),"r",encoding="utf-8",errors="ignore") as f:desc_raw = f.read().splitlines()
                     for l,k in enumerate(desc_raw):
                        if not k.startswith("###") and not ("![" in k and "](" in k) and len(k)>2 and not l>5: desc = k;break
                     collected_data[j] = desc
@@ -197,9 +204,9 @@ def GetLOLC2(output: str) -> bool:
             values.append(collected_data)
         return values, keys
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOLC2")
-    GetRepository("https://github.com/lolc2/lolc2.github.io")
+    repo = GetRepository("https://github.com/lolc2/lolc2.github.io")
 
-    with open("lolc2.github.io/c2_data.json","r",encoding="utf-8",errors="ignore") as f:
+    with open(os.path.join(repo, "c2_data.json"),"r",encoding="utf-8",errors="ignore") as f:
         contents = f.read()
     values, keys = ParseJSON(contents)
     return WriteExportCsv(output, values, keys)
@@ -224,22 +231,22 @@ def GetGTFOBins(output: str) -> bool:
                     val = value.get(key, "")
                     sanitized = sanitize(val)
                     line_items.append(sanitized)
-                line = f'"{md_files[i].split("/")[2].split(".md")[0]}' + '","'.join(line_items) + '","false"' + '\n'
+                line = f'"{os.path.basename(md_files[i]).split(".md")[0]}' + '","'.join(line_items) + '","false"' + '\n'
                 f.write(line)
         print(f"\n \033[1;90m[\033[1;32m+\033[1;90m]\033[0m Output file\033[1;90m:\033[0m \033[1;93m{output}\033[0m")
         return os.path.exists(output)
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting GTFOBins")
-    GetRepository("https://github.com/GTFOBins/GTFOBins.github.io")
+    repo = GetRepository("https://github.com/GTFOBins/GTFOBins.github.io")
 
-    md_files = FindFiles("GTFOBins.github.io/_gtfobins/",".md")
+    md_files = FindFiles(os.path.join(repo, "_gtfobins"),".md")
     keys, values = ReadMDFiles(md_files)
     return WriteExportMdCsv(output,values,keys,md_files)
 
 def GetLOLBAS(output: str) -> bool:
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOLBAS")
-    GetRepository("https://github.com/LOLBAS-Project/LOLBAS")
+    repo = GetRepository("https://github.com/LOLBAS-Project/LOLBAS")
 
-    yml_files = FindFiles("LOLBAS/yml/",".yml",["HonorableMentions"])
+    yml_files = FindFiles(os.path.join(repo, "yml"),".yml",["HonorableMentions"])
     keys, values = ReadFiles(yml_files)
     return WriteExportCsv(output,values,keys)
 
@@ -256,9 +263,9 @@ def GetLOLDrivers(output: str) -> bool:
 
 def GetHijackLibs(output: str) -> bool:
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting HijackLibs")
-    GetRepository("https://github.com/wietze/HijackLibs")
+    repo = GetRepository("https://github.com/wietze/HijackLibs")
 
-    yml_files = FindFiles("HijackLibs/yml/",".yml")
+    yml_files = FindFiles(os.path.join(repo, "yml"),".yml")
     keys, values = ReadFiles(yml_files)
     return WriteExportCsv(output,values,keys)
 
@@ -269,9 +276,9 @@ def GetBootloaders(output: str) -> bool:
 
 def GetLOFLCAB(output: str) -> bool:
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOFLCAB")
-    GetRepository("https://github.com/LOFL-Project/LOFLCAB/")
+    repo = GetRepository("https://github.com/LOFL-Project/LOFLCAB/")
 
-    yml_files = FindFiles("LOFLCAB/yml/",".yml")
+    yml_files = FindFiles(os.path.join(repo, "yml"),".yml")
     keys, values = ReadFiles(yml_files)
     return WriteExportCsv(output,values,keys)
 
@@ -352,9 +359,9 @@ def GetLOTTunnels(output:str) -> bool:
 
 
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOTTunels")
-    GetRepository("https://github.com/LOTTunnels/LOTTunnels.github.io")
+    repo = GetRepository("https://github.com/LOTTunnels/LOTTunnels.github.io")
 
-    md_files = FindFiles("LOTTunnels.github.io/_lottunnels/Binaries/",".md")
+    md_files = FindFiles(os.path.join(repo, "_lottunnels", "Binaries"),".md")
     keys, values = ReadMDFiles(md_files)
     return WriteExportMdCsv(output,values,keys,md_files)
 
@@ -382,20 +389,20 @@ def GetLOLESXi(output: str) -> bool:
         print(f"\n \033[1;90m[\033[1;32m+\033[1;90m]\033[0m Output file\033[1;90m:\033[0m \033[1;93m{output}\033[0m")
         return os.path.exists(output)
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOLESXi")
-    GetRepository("https://github.com/LOLESXi-Project/LOLESXi/")
+    repo = GetRepository("https://github.com/LOLESXi-Project/LOLESXi/")
 
-    md_files = FindFiles("LOLESXi/_lolesxi/Binaries/",".md")
+    md_files = FindFiles(os.path.join(repo, "_lolesxi", "Binaries"),".md")
     keys, values = ReadMDFiles(md_files)
     return WriteExportMdCsv(output,values,keys,md_files)
 
 def GetLOLCerts(output: list[str]) -> bool:
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOLCerts")
-    GetRepository("https://github.com/ReversecLabs/lolcerts/")
+    repo = GetRepository("https://github.com/ReversecLabs/lolcerts/")
 
     all_results = []
 
     for i in output:
-        yml_files = FindFiles(f"lolcerts/{i.split('/')[1].split('_')[1][:-4]}/", ".yml")
+        yml_files = FindFiles(os.path.join(repo, i.split('/')[1].split('_')[1][:-4]), ".yml")
         keys, values = ReadFiles(yml_files)
         all_results.append(WriteExportCsv(i,values,keys))
 
@@ -482,17 +489,17 @@ def GetLotWebhooks(output: str) -> bool:
 
 def GetLooBins(output: str) -> bool:
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOOBins")
-    GetRepository("https://github.com/infosecB/LOOBins")
+    repo = GetRepository("https://github.com/infosecB/LOOBins")
 
-    yml_files = FindFiles("LOOBins/LOOBins/",".yml")
+    yml_files = FindFiles(os.path.join(repo, "LOOBins"),".yml")
     keys, values = ReadFiles(yml_files)
     return WriteExportCsv(output,values,keys)
 
 def GetLOLApps(output: str) -> bool:
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOLAPPS")
-    GetRepository("https://github.com/LOLAPPS-Project/LOLAPPS/")
+    repo = GetRepository("https://github.com/LOLAPPS-Project/LOLAPPS/")
 
-    yml_files = FindFiles("LOLAPPS/yml/",".yml")
+    yml_files = FindFiles(os.path.join(repo, "yml"),".yml")
     keys, values = ReadFiles(yml_files)
     return WriteExportCsv(output,values,keys)
 
@@ -515,14 +522,14 @@ def GetWADComs(output: str) -> bool:
                     val = value.get(key, "")
                     sanitized = sanitize(val)
                     line_items.append(sanitized)
-                line = f'"{md_files[i].split("/")[2].split(".md")[0]}","' + '","'.join(line_items) + '","false"' + '\n'
+                line = f'"{os.path.basename(md_files[i]).split(".md")[0]}","' + '","'.join(line_items) + '","false"' + '\n'
                 f.write(line)
         print(f"\n \033[1;90m[\033[1;32m+\033[1;90m]\033[0m Output file\033[1;90m:\033[0m \033[1;93m{output}\033[0m")
         return os.path.exists(output)
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting WADComs")
-    GetRepository("https://github.com/WADComs/WADComs.github.io")
+    repo = GetRepository("https://github.com/WADComs/WADComs.github.io")
 
-    md_files = FindFiles("WADComs.github.io/_wadcoms/",".md")
+    md_files = FindFiles(os.path.join(repo, "_wadcoms"),".md")
     keys, values = ReadMDFiles(md_files)
     return WriteExportMdCsv(output,values,keys,md_files)
 
@@ -535,12 +542,12 @@ def GetLOTP(output: str) -> bool:
                 return " ".join(para.replace("`", "").split())
         return ""
     print(" \033[1;90m[\033[1;96m~\033[1;90m]\033[0m Starting LOTP")
-    GetRepository("https://github.com/boostsecurityio/lotp")
+    repo = GetRepository("https://github.com/boostsecurityio/lotp")
 
     keys = ["title", "description"]
     values = []
     # Read one file at a time so the url/description always land on the right tool, even if a file fails to parse
-    for md_file in FindFiles("lotp/_tool/", ".md"):
+    for md_file in FindFiles(os.path.join(repo, "_tool"), ".md"):
         file_keys, file_values = ReadMDFiles([md_file])
         if not file_values: continue
         for key in file_keys:
